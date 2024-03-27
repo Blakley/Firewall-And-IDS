@@ -1,9 +1,27 @@
-
+# imports
 import os
+import logging
 from flask import Flask, request, render_template, jsonify, url_for, redirect, make_response
 
 # make flask instance
 app = Flask(__name__)  
+
+
+# 
+locked_clients = []
+blocked_clients = []
+locked_threshold = 5
+
+'''
+    =======================================
+            Configure server logging
+    =======================================
+'''
+
+# setups up terminal and file logging
+def logging():
+    pass
+
 
 
 '''
@@ -18,19 +36,14 @@ def home():
     return render_template('home.html')
 
 
-# project information page
-@app.route('/information')
-def learn():
-    return render_template('information.html')
-
-
-# project demonstration page
-@app.route('/demonstration')
-def learn():
-    return render_template('demonstration.html')
+# 403 error page
+@app.route('/error')
+def error():
+    return render_template('error.html')
 
 
 # start
 if __name__ == '__main__':
     # start web app/server
+    logging()
     app.run()
