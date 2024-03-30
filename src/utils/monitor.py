@@ -4,12 +4,12 @@ import time
 import platform
 
 '''
-    Monitors the login.log file for changes 
+    Monitors the logfile file for changes 
     the file is updated whenever a login form is submitted
 '''
 class Monitor(object):
     def __init__(self):
-        self.output_log = 'login.log'
+        self.output_log = 'logfile'
         self.monitor()
 
     # capture new traffic

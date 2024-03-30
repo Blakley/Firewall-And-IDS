@@ -872,7 +872,7 @@ section {
 }
 
 .Terminal__Prompt {
-  margin-top: 10px;
+  /* margin-top: 10px; */
   display: flex;
 }
 
@@ -892,7 +892,7 @@ section {
   display: block;
   margin-left: 8px;
   margin-top: 4px;
-  animation: 1500ms ease infinite alternate blink;
+  animation: 725ms ease infinite alternate blink;
 }
 
 @keyframes blink {
