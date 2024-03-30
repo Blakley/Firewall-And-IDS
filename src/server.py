@@ -7,6 +7,7 @@ from flask import Flask, request, render_template, jsonify, url_for, redirect, m
 
 
 # make flask instance
+# runs an HTTP server which listens on TCP/IP sockets.
 app = Flask(__name__)  
 
 
@@ -25,9 +26,10 @@ locked_threshold = 5
 def logging():
     pass
 
+
 '''
     =======================================
-          Configure open server ports
+          Configure additional ports
     =======================================
 '''
 

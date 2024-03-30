@@ -1,3 +1,0 @@
-*.html linguist-vendored
-src/templates/ export-ignore
-src/static/ export-ignore
