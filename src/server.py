@@ -1,7 +1,10 @@
 # imports
 import os
+import socket
 import logging
+import threading
 from flask import Flask, request, render_template, jsonify, url_for, redirect, make_response
+
 
 # make flask instance
 app = Flask(__name__)  
@@ -22,11 +25,35 @@ locked_threshold = 5
 def logging():
     pass
 
+'''
+    =======================================
+          Configure open server ports
+    =======================================
+'''
+
+# Handle UDP connections to port 9001
+def udp_server():
+    udp_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    udp_socket.bind(('0.0.0.0', 9001))  
+    
+    print("UDP server listening on port 9001...")
+    
+    while True:
+        data, address = udp_socket.recvfrom(1024) 
+        print(f"Received UDP packet from {address}: {data.decode('utf-8')}")
+
+    # view server's open udp ports: sudo nmap -sU localhost
+    # send udp packet method 1: echo "Your packet data" | nc -u localhost 9001
+    # send udp packet method 2: 
+    '''
+        with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as s:
+            s.sendto(MESSAGE, (HOST, PORT))
+    '''
 
 
 '''
     =======================================
-            Handle 'GET' routes 
+            Handle HTTP 'GET' routes 
     =======================================
 '''
 
@@ -44,7 +71,13 @@ def error():
 
 # start
 if __name__ == '__main__':
-    # start web app/server
+    # setup packet/client logging
     logging()
-    app.run()
+
+    # udp server thread
+    udp_thread = threading.Thread(target=udp_server)
+    udp_thread.start()
+
+    # start web app/server
+    app.run(port= 9000)
 
