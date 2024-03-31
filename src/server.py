@@ -54,6 +54,8 @@ def _filter(record):
 
 # Handle UDP connections to port 9001
 def udp_server():
+    global new_logs
+
     udp_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     udp_socket.bind(('0.0.0.0', 9001))  
     
@@ -62,6 +64,15 @@ def udp_server():
     while True:
         data, address = udp_socket.recvfrom(1024) 
         print(f"Received UDP packet from {address}: {data.decode('utf-8')}")
+
+        # send test log to file
+        new_logs = True
+
+        _newlog = logging.getLogger('logs')
+        _newlog.info(
+            f"Client: {address}, just message UDP port 9001"
+        )
+        
 
     # view server's open udp ports: sudo nmap -sU localhost
     # send udp packet method 1: echo "Your packet data" | nc -u localhost 9001
@@ -78,9 +89,15 @@ def udp_server():
     =======================================
 '''
 
+# todo:
+# add random routes with a blank page "saying random route {index}"
+# to test packet sending
+
 # project home page
 @app.route('/')
 def home():
+    new_logs = True
+
     # send test log to file
     _newlog = logging.getLogger('logs')
     _newlog.info(
@@ -109,6 +126,9 @@ new_logs = False
 @app.route('/terminal')
 def log_to_terminal():
     global new_logs 
+
+    # todo:
+    # output the last line inside logfile
 
     if new_logs:
         new_logs = False
