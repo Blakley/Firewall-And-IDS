@@ -1,7 +1,9 @@
 # imports
 import os
+import time
 import socket
 import logging
+import paramiko
 import threading
 from flask import Flask, request, render_template, jsonify, url_for, redirect, make_response
 
@@ -52,6 +54,9 @@ def _filter(record):
     =======================================
 '''
 
+# todo, setup ftp, ssh, smtp port
+# remove shh and udp port, monitor all through the flask tcp port
+
 # Handle UDP connections to port 9001
 def udp_server():
     global new_logs
@@ -81,6 +86,39 @@ def udp_server():
         with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as s:
             s.sendto(MESSAGE, (HOST, PORT))
     '''
+
+
+# Function to handle incoming SSH connections
+def handle_ssh(client, addr):
+    logging.info(f"SSH connection established from {addr}")
+    # Add your SSH handling logic here
+    client.close()
+
+
+# Start SSH server function
+def start_ssh_server():
+    # Create a new SSH server instance
+    ssh_server = paramiko.Transport(('0.0.0.0', 2222)) 
+    ssh_server.add_server_key(paramiko.RSAKey.generate(2048))
+    
+    # Start accepting SSH connections
+    try:
+        ssh_server.start_server(server=handle_ssh)
+        print("SSH server started successfully")
+    except Exception as e:
+        logging.error(f"Error starting SSH server: {e}")
+        return
+
+    # Keep the server running until interrupted
+    try:
+        while True:
+            time.sleep(1)
+    except KeyboardInterrupt:
+        print("Stopping SSH server...")
+        ssh_server.close()
+
+
+    # scan for ssh ports: sudo nmap -p 2222 localhost
 
 
 '''
@@ -150,6 +188,10 @@ if __name__ == '__main__':
     # udp server thread
     udp_thread = threading.Thread(target=udp_server)
     udp_thread.start()
+
+    # ssh server thread
+    ssh_thread = threading.Thread(target=start_ssh_server)
+    ssh_thread.start()
 
     # start web app/server
     app.run(port= 9000)
