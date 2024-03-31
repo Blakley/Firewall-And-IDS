@@ -5,7 +5,6 @@ import platform
 
 '''
     Monitors the logfile file for changes 
-    the file is updated whenever a login form is submitted
 '''
 class Monitor(object):
     def __init__(self):

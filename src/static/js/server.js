@@ -1,9 +1,6 @@
-// 
-console.log("firewall & ids script file");
-
 
 // Function to add logs to the front-end terminal logger
-function logger(text) {
+function insertTerminalText(text) {
     // Create a new div element with the class "Terminal__text"
     var newTextElement = document.createElement("div");
     newTextElement.className = "Terminal__text";
@@ -21,4 +18,17 @@ function logger(text) {
     promptElement.parentNode.insertBefore(newTextElement, promptElement);
 }
 
-// logger("This is a test command\n");
+
+// checks for new logs
+var _loginterval = setInterval(function() {
+    let route = '/terminal';
+
+    $.get(route, function(data) {
+        
+        let msg = data.message;
+        if (msg != "")
+            insertTerminalText(msg);
+
+    }, 'json');
+
+}, 1000);
