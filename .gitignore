@@ -1,5 +1,6 @@
 # ignore
 .js
+.html
 
 # dont ignore
 !page.js
