@@ -1,10 +1,7 @@
 # imports
 import os
 import time
-import socket
 import logging
-import paramiko
-import threading
 from flask import Flask, request, render_template, jsonify, url_for, redirect, make_response
 
 # make flask instance
@@ -50,86 +47,11 @@ def _filter(record):
 
 '''
     =======================================
-          Configure additional ports
-    =======================================
-'''
-
-# todo, setup ftp, ssh, smtp port
-# remove shh and udp port, monitor all through the flask tcp port
-
-# Handle UDP connections to port 9001
-def udp_server():
-    global new_logs
-
-    udp_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    udp_socket.bind(('0.0.0.0', 9001))  
-    
-    print("UDP server listening on port 9001...")
-    
-    while True:
-        data, address = udp_socket.recvfrom(1024) 
-        print(f"Received UDP packet from {address}: {data.decode('utf-8')}")
-
-        # send test log to file
-        new_logs = True
-
-        _newlog = logging.getLogger('logs')
-        _newlog.info(
-            f"Client: {address}, just message UDP port 9001"
-        )
-        
-
-    # view server's open udp ports: sudo nmap -sU localhost
-    # send udp packet method 1: echo "Your packet data" | nc -u localhost 9001
-    # send udp packet method 2: 
-    '''
-        with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as s:
-            s.sendto(MESSAGE, (HOST, PORT))
-    '''
-
-
-# Function to handle incoming SSH connections
-def handle_ssh(client, addr):
-    logging.info(f"SSH connection established from {addr}")
-    # Add your SSH handling logic here
-    client.close()
-
-
-# Start SSH server function
-def start_ssh_server():
-    # Create a new SSH server instance
-    ssh_server = paramiko.Transport(('0.0.0.0', 2222)) 
-    ssh_server.add_server_key(paramiko.RSAKey.generate(2048))
-    
-    # Start accepting SSH connections
-    try:
-        ssh_server.start_server(server=handle_ssh)
-        print("SSH server started successfully")
-    except Exception as e:
-        logging.error(f"Error starting SSH server: {e}")
-        return
-
-    # Keep the server running until interrupted
-    try:
-        while True:
-            time.sleep(1)
-    except KeyboardInterrupt:
-        print("Stopping SSH server...")
-        ssh_server.close()
-
-
-    # scan for ssh ports: sudo nmap -p 2222 localhost
-
-
-'''
-    =======================================
             Handle HTTP 'GET' routes 
     =======================================
 '''
 
-# todo:
-# add random routes with a blank page "saying random route {index}"
-# to test packet sending
+# todo: add random routes with a blank page "saying random route {index}"
 
 # project home page
 @app.route('/')
@@ -165,8 +87,7 @@ new_logs = False
 def log_to_terminal():
     global new_logs 
 
-    # todo:
-    # output the last line inside logfile
+    # todo: output the last line inside logfile
 
     if new_logs:
         new_logs = False
@@ -184,14 +105,6 @@ def log_to_terminal():
 if __name__ == '__main__':
     # setup packet/client logging
     _logger()
-
-    # udp server thread
-    udp_thread = threading.Thread(target=udp_server)
-    udp_thread.start()
-
-    # ssh server thread
-    ssh_thread = threading.Thread(target=start_ssh_server)
-    ssh_thread.start()
 
     # start web app/server
     app.run(port= 9000)

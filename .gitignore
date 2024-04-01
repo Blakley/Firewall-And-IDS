@@ -1,2 +1,6 @@
-src/static/bs/
-src/static/css/
+# ignore
+.js
+
+# dont ignore
+!page.js
+!server.js
