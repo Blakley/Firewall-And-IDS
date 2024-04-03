@@ -2,6 +2,7 @@
 import os
 import time
 import logging
+from datetime import datetime, timedelta
 from flask import Flask, request, render_template, jsonify, url_for, redirect
 
 # make flask instance
@@ -77,6 +78,54 @@ def home():
 def error():
     accessed("error") # log request
     return render_template('error.html')
+
+
+'''
+    =======================================
+            Server Firewall and IDS
+    =======================================
+'''
+
+# handle rate limiting
+def rate_limit():
+    logs = 'utils/logfile'
+
+    # allowed requests per minute
+    rate_limit_window = 60
+
+    # allowed requests per 3 minutes
+    rate_limit_window_b = 180
+
+    # calculate the time threshold (1 minutes ago)
+    window_1 = datetime.now() - timedelta(seconds=rate_limit_window)
+    # calculate the time threshold (3 minutes ago)
+    window_3 = datetime.now() - timedelta(seconds=rate_limit_window_b)
+
+    # read logfile and count website requests from the same client address within the time window
+    _requests = 0
+    with open(logs, 'r') as log_file:
+        for line in log_file:
+            timestamp_str = line.split(' - ')[0]
+            timestamp = datetime.strptime(timestamp_str, '%Y-%m-%d %H:%M:%S,%f')
+            if timestamp > window_1:
+                _requests += 1
+
+
+    # check if site page requests exceeds threshold
+    threshold = 10
+    if _requests >= threshold:
+        pass
+    
+    '''
+        log that the client has exceeded their threshold, (block them for x amount of time)
+        if the client exceeded the second threshold, block them (log it)
+        [send to the front-end terminal]:
+            1. suspecious activty: clients that are on hold
+            2. clients blocked
+            3. amount of traffic within last x minutes
+            4.
+
+    '''
 
 
 '''
