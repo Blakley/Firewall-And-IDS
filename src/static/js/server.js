@@ -45,43 +45,50 @@ document.addEventListener('keydown', function(event) {
 		event.preventDefault();
 
 		if (inputText.toLowerCase() === 'clear') {
+            // handles clearing the terminal
 			const terminalTextElements = document.querySelectorAll('.Terminal__text');
 			terminalTextElements.forEach(function(element) {
 				body.removeChild(element);
 			});
-		} else {
-			const newText = document.createElement('div');
-			newText.classList.add('Terminal__text');
-			newText.textContent = inputText;
-			body.insertBefore(newText, prompt);
+		} 
+        else {
+            // handles submitting the command and getting the output back
+
+            // create submission data
+            let route = '/terminal_submit'
+            let form = {
+                'terminal_input': inputText
+            }
+
+            // submit terminal command
+            $.post(route, form, function(data) {
+                // get message
+                let msg = data.message
+                console.log("terminal command: ", msg)
+
+                let _text = document.createElement('div');
+                _text.classList.add('Terminal__text');
+                _text.textContent = msg;
+                body.insertBefore(_text, prompt);
+
+            }, 'json');
 		}
-
-		// get submission data
-		let route = '/terminal_submit'
-		let form = {
-			'terminal_input': inputText
-		}
-
-		// submit terminal command
-		$.post(route, form, function(data) {
-			// get message
-			let msg = data.message
-			console.log("message to log: ", msg)
-
-		}, 'json');
-
 
 		// reset terminal
 		prompt.innerHTML = '<span class="Prompt__user">demo@kali:</span><span class="Prompt__location">~</span><span class="Prompt__dollar">$</span><span class="Prompt__cursor"></span>';
 		inputText = '';
-	} else if (char == 'Backspace') {
+	} 
+    else if (char == 'Backspace') {
+        // handle backspaces
 		event.preventDefault();
 
 		if (inputText.length > 0) {
-			inputText = inputText.slice(0, -1); // Remove last character from inputTexyest
+			inputText = inputText.slice(0, -1);   // Remove last character from inputText
 			prompt.removeChild(prompt.lastChild); // Remove last character from prompt
 		}
-	} else {
+	} 
+    else {
+        // handle inputing the text command
 		inputText += char;
 		prompt.insertBefore(document.createTextNode(char), prompt.lastChild);
 	}
