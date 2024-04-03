@@ -686,3 +686,40 @@ section{
         width:95%
     }
 }
+
+.page-404 {
+    display: flex;
+    min-height: 100vh;
+    font-weight: 600;
+    align-items: center;
+    padding: 70px 0;
+    font-size: 12px;
+}
+
+.page-404 h1 {
+    font-size: 250px;
+    font-weight: 700;
+    line-height: 1;
+    margin-left: 35%;
+    color: #7b6f91;
+}
+
+@media (max-width: 768px) {
+    .page-404 h1 {
+        font-size: 150px;
+        line-height: 200px;
+    }
+}
+
+.page-404 h2 {
+    text-transform: uppercase;
+    font-size: 20px;
+    letter-spacing: 4px;
+    font-weight: 700;
+}
+
+#error-body {
+    line-height: 1.65;
+    -webkit-font-smoothing: antialiased;
+}
+

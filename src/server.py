@@ -2,16 +2,13 @@
 import os
 import time
 import logging
-from flask import Flask, request, render_template, jsonify, url_for, redirect, make_response
+from flask import Flask, request, render_template, jsonify, url_for, redirect
 
 # make flask instance
-# runs an HTTP server which listens on TCP/IP sockets.
 app = Flask(__name__)  
 
-# 
-locked_clients = []
+# blocked ip addresses
 blocked_clients = []
-locked_threshold = 5
 
 '''
     =======================================
@@ -47,34 +44,44 @@ def _filter(record):
 
 '''
     =======================================
-            Handle HTTP 'GET' routes 
+            Handle HTTP routes 
     =======================================
 '''
 
-# todo: add random routes with a blank page "saying random route {index}"
+# Handle blocking addresses
+@app.before_request
+def restrict_ips():
+    client_ip = request.remote_addr
+    if request.endpoint != 'error' and client_ip in blocked_clients:
+        return redirect(url_for('error'))
 
-# project home page
-@app.route('/')
-def home():
-    # send test log to file
+
+# Handle logging client traffic
+def accessed(page):
+    # log client access
     _newlog = logging.getLogger('logs')
     _newlog.info(
-        f"Client: {request.remote_addr}, just accessed the home page."
+        f"Client: {request.remote_addr}, just accessed the {page} page"
     )
 
+
+# Home page
+@app.route('/')
+def home():
+    accessed("home") # log request
     return render_template('home.html')
 
 
-# 403 error page
+# Error page
 @app.route('/error')
 def error():
+    accessed("error") # log request
     return render_template('error.html')
-
 
 
 '''
     =======================================
-            Server/Client functions
+              Terminal Back-end
     =======================================
 '''
 
