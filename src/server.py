@@ -80,20 +80,28 @@ def error():
     =======================================
 '''
 
-# handle sending messages to client's terminal
-new_logs = False
+# returns the output of the specified command
+def terminal_output(command):
+    # handle various commands
+    result = {
+        'message' : ''
+    }
 
-@app.route('/terminal')
-def log_to_terminal():
-    global new_logs 
+    match command:
+        case "help":
+            result['message'] = "showing help"
+        case _:
+            result['message'] = "random message"
+    
+    return jsonify(result)
 
-    # todo: output the last line inside logfile
 
-    if new_logs:
-        new_logs = False
-        return jsonify({'message' : 'This is a test.'})    
-    else:
-        return jsonify({'message' : ''})
+# handle terminal command submissions
+@app.route('/terminal_submit', methods=['POST'])
+def terminal():
+    # get terminal input
+    command = request.form['terminal_input']
+    return terminal_output(command)
 
 
 '''

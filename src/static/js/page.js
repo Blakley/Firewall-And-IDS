@@ -196,51 +196,6 @@
     /**
      * Initiate Pure Counter 
      */
-    new PureCounter();
-
-    // Terminal text insertions
-    const prompt = document.querySelector('.Terminal__Prompt');
-    const body = document.querySelector('.Terminal__body');
-    let inputText = ''; // variable to store user input
-    
-    document.addEventListener('keydown', function(event) {
-        const char = event.key;
-    
-        if (char === 'Enter') {
-            event.preventDefault(); // Prevent default behavior
-    
-            if (inputText.toLowerCase() === 'clear') {
-                const terminalTextElements = document.querySelectorAll('.Terminal__text');
-                terminalTextElements.forEach(function(element) {
-                    body.removeChild(element);
-                });
-            }
-            else {
-                const newText = document.createElement('div');
-                newText.classList.add('Terminal__text');
-                newText.textContent = inputText;
-                body.insertBefore(newText, prompt);
-            }
-
-            // Reset prompt to default prompt text along with cursor
-            prompt.innerHTML = '<span class="Prompt__user">demo@kali:</span><span class="Prompt__location">~</span><span class="Prompt__dollar">$</span><span class="Prompt__cursor"></span>';
-            inputText = ''; // Reset inputText variable
-        } 
-        else if (char == 'Backspace') {
-            event.preventDefault();
-            
-            if (inputText.length > 0) {
-                inputText = inputText.slice(0, -1);   // Remove last character from inputTexyest
-                prompt.removeChild(prompt.lastChild); // Remove last character from prompt
-            }
-        }
-        else {
-            inputText += char; 
-            prompt.insertBefore(document.createTextNode(char), prompt.lastChild); 
-        }
-    });
-
-
-    
+    new PureCounter();  
 
 })()
