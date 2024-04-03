@@ -642,8 +642,14 @@ section{
     height:calc(100% - 25px);
     margin-top:-1px;
     padding-top:2px;
-    font-family:'Ubuntu mono'
+    font-family:'Ubuntu mono';
+    overflow-y: auto;
 }
+
+.Terminal__body::-webkit-scrollbar {
+    width: 0; /* Hide the scrollbar */
+}
+
 .Prompt__dollar,.Terminal__text{
     color:white;
 }

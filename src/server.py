@@ -56,8 +56,6 @@ def _filter(record):
 # project home page
 @app.route('/')
 def home():
-    new_logs = True
-
     # send test log to file
     _newlog = logging.getLogger('logs')
     _newlog.info(
@@ -82,11 +80,17 @@ def error():
 
 # returns the output of the specified command
 def terminal_output(command):
+    '''
+        allow for input commands: [clear, current: policies, 
+        firewall details, ids details, alerts (block ips, suspicious activity, etc)]
+    '''
+
     # handle various commands
     result = {
         'message' : ''
     }
 
+    # will return information from logged server content
     match command:
         case "help":
             result['message'] = "showing help"

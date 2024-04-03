@@ -1,45 +1,26 @@
-// // Function to add logs to the front-end terminal logger
-// function insertTerminalText(text) {
-//     // Create a new div element with the class "Terminal__text"
-//     var newTextElement = document.createElement("div");
-//     newTextElement.className = "Terminal__text";
-
-//     // Replace newline characters with <br> tags
-//     var formattedText = text.replace(/\n/g, "<br>");
-
-//     // Set the innerHTML of the new element
-//     newTextElement.innerHTML = formattedText;
-
-//     // Get the Terminal__Prompt element
-//     var promptElement = document.querySelector('.Terminal__Prompt');
-
-//     // Insert the new element before the Terminal__Prompt element
-//     promptElement.parentNode.insertBefore(newTextElement, promptElement);
-// }
-
-
-// // checks for new logs
-// var _loginterval = setInterval(function() {
-//     let route = '/terminal';
-
-//     $.get(route, function(data) {
-
-//         let msg = data.message;
-//         if (msg != "")
-//             insertTerminalText(msg);
-
-//     }, 'json');
-
-// }, 1000);
-
-
 // Terminal text insertions
 const prompt = document.querySelector('.Terminal__Prompt');
 const body = document.querySelector('.Terminal__body');
 let inputText = ''; // variable to store user input
 
+// list of keys to ignore
+let ignore_keys = [
+    'Tab',
+    'Shift',
+    'Control',
+    'Alt',
+    'Delete',
+    'ArrowLeft',
+    'ArrowRight'
+]
+
+// Terminal input listener
 document.addEventListener('keydown', function(event) {
 	const char = event.key;
+
+    // check if the pressed key should be ignored
+    if (ignore_keys.includes(char))
+        return;
 
 	if (char === 'Enter') {
 		event.preventDefault();
@@ -62,7 +43,7 @@ document.addEventListener('keydown', function(event) {
 
             // submit terminal command
             $.post(route, form, function(data) {
-                // get message
+                // get output from server
                 let msg = data.message
                 console.log("terminal command: ", msg)
 
@@ -93,3 +74,4 @@ document.addEventListener('keydown', function(event) {
 		prompt.insertBefore(document.createTextNode(char), prompt.lastChild);
 	}
 });
+
