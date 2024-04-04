@@ -28,7 +28,6 @@ def _logger():
     console_handler = logging.StreamHandler()
     formatter = logging.Formatter('%(asctime)s - %(message)s')
     console_handler.setFormatter(formatter)
-    console_handler.addFilter(_filter)
     root_logger.addHandler(console_handler)
 
     # logs to a file
@@ -40,26 +39,6 @@ def _logger():
     _logs.addHandler(logs_handler)
 
 
-# filter out login-logs from terminal logger
-def _filter(record):
-    string_to_exclude = "/terminal" 
-    return string_to_exclude not in record.getMessage()
-
-
-'''
-    =======================================
-            Handle HTTP routes 
-    =======================================
-'''
-
-# Handle blocking addresses
-@app.before_request
-def restrict_ips():
-    client_ip = request.remote_addr
-    if request.endpoint != 'error' and client_ip in blocked_clients:
-        return redirect(url_for('error'))
-
-
 # Handles logging client traffic/messages
 def log_message(msg):
     _newlog = logging.getLogger('logs')
@@ -68,27 +47,22 @@ def log_message(msg):
     )
 
 
+'''
+    =======================================
+            Handle HTTP routes 
+    =======================================
+'''
+
 # Home page
 @app.route('/')
 def home():
     # track client requests
     client = request.remote_addr
-    result = rate_limit(client)
+    rate_limit(client)
 
     # log access
     msg = f'Client: {client}, just accessed the home page'
     log_message(msg) 
-
-    # client exceeded request threshold
-    if result:
-        msg = f'Client: {client} has been blocked. Sent {client_activity[client]} requests in within the last minute'
-        log_message(msg)
-        return render_template('error.html')
-    
-    # check if client is suspicious
-    if client_activity[client] >= 100:
-        msg = f'[Suspicious activity deteacted] : Client {client}, has made {client_activity[client]} requests within the last minute'
-        log_message(msg)
 
     return render_template('home.html')
 
@@ -110,6 +84,14 @@ def error():
     =======================================
 '''
 
+# handle blocking addresses
+@app.before_request
+def restrict_ips():
+    client_ip = request.remote_addr
+    if request.endpoint != 'error' and client_ip in blocked_clients:
+        return redirect(url_for('error'))
+
+
 # handle rate limiting
 def rate_limit(client):
     logs = 'utils/logfile'
@@ -118,7 +100,14 @@ def rate_limit(client):
     rate_limit_window = 60
 
     # calculate the time threshold (1 minute ago)
-    window_1 = datetime.now() - timedelta(seconds=rate_limit_window)
+    window = datetime.now() - timedelta(seconds=rate_limit_window)
+
+    # check if a minute has elapsed since the last update for the client
+    if client in client_activity:
+        last_update_time = client_activity[client]["timestamp"]
+        if datetime.now() - last_update_time >= timedelta(seconds=rate_limit_window):
+            # reset request count for the client
+            client_activity[client]["requests"] = 0
 
     # read logfile and count website requests from the same client address within the time window
     _requests = 0
@@ -127,23 +116,22 @@ def rate_limit(client):
             if "Client: {}".format(client) in line:
                 timestamp_str, client_info = line.split(' - ')
                 timestamp = datetime.strptime(timestamp_str, '%Y-%m-%d %H:%M:%S,%f')
-                if timestamp > window_1:
+                if timestamp > window:
                     _requests += 1
 
     # update client_activity dictionary
     if client not in client_activity:
-        client_activity[client] = 1
+        client_activity[client] = {"requests": 1, "timestamp": datetime.now()}
     else:
-        client_activity[client] += _requests
+        client_activity[client]["requests"] += 1
+        client_activity[client]["timestamp"] = datetime.now()
 
     # check if client exceeded request threshold
-    if client_activity[client] >= 500:
-        blocked_clients.append(client)
-        return True
+    if client_activity[client]["requests"] >= 500:
+        if client not in blocked_clients:
+            blocked_clients.append(client)
     
-    return False
-
-
+   
 '''
     =======================================
               Terminal Back-end
@@ -152,33 +140,79 @@ def rate_limit(client):
 
 # returns the output of the specified command
 def terminal_output(command):
-    '''
-        allow for input commands: [clear, current: policies, 
-        firewall details, ids details, alerts (block ips, suspicious activity, etc)]
-    '''
-
-    # handle various commands
+    # Initialize the result dictionary
     result = {
         'message' : ''
     }
 
-    '''
-        iterate logs, show all clients in the last minute that is suspicious
-        iterate logs, show all clients that have been blocked
-    '''
-
-    # will return information from logged server content
+    # Get information from logged server content
     match command:
         case "help":
-            result['message'] = "showing help"
+            # handle various commands
+            help_menu = '''
+            ==========================================================================
+            ______________________________𝗛𝗘𝗟𝗣 𝗠𝗘𝗡𝗨_______________________________
+            $ >
+            $ : [help]       Displays terminal command information
+            $ : [clear]      Clears the terminal screen
+            $ : [suspicious] Show clients with suspicious activity
+            $ : [blocked]    Show clients that have been blacklisted
+            $ : [firewall]   Shows the current firewall configuration
+            $ : [ids]        Shows the current IDS configuration
+            ==========================================================================
+            '''
+            result['message'] = help_menu
+        
         case "suspicious":
-            pass
+            msg_body = ""
+            for client, data in client_activity.items():
+                if data["requests"] >= 100 and client not in blocked_clients:
+                    msg = f'[Abnormality]: Client {client} is showcasing suspicious behavior due to having sent {data["requests"]} requests within the last minute\n'
+                    msg_body += msg
+
+            if msg_body == "":
+                msg_body = f'No suspicious activities to report'
+
+            result['message'] = msg_body
+        
         case "blocked":
-            pass
+            msg_body = ""
+            for _ip in blocked_clients:
+                msg = f'[Intruder]: Client {_ip} has been blacklisted due to sending more than 500 requests within a minute\n'    
+                msg_body += msg
+
+            if msg_body == "":
+                msg_body = f'No blocked clients to report'
+
+            result['message'] = msg_body
+        
+        case "firewall":
+            # use f-string to insert current firewall config values
+            firewall_config = '''
+            ============================================
+            __________𝗙𝗶𝗿𝗲𝘄𝗮𝗹𝗹 𝗖𝗼𝗻𝗳𝗶𝗴𝘂𝗿𝗮𝘁𝗶𝗼𝗻_________
+            $ >
+            $ >
+            ============================================
+            '''
+            result['message'] = firewall_config
+
+        case "ids":
+            # use f-string to insert current ids config values
+            ids_config = '''
+            ============================================
+            ____________𝗜𝗗𝗦  𝗖𝗼𝗻𝗳𝗶𝗴𝘂𝗿𝗮𝘁𝗶𝗼𝗻___________
+            $ >
+            $ >
+            ============================================
+            '''
+            result['message'] = ids_config
+
         case _:
-            result['message'] = "random message"
-    
+            result['message'] = "invalid command entered"
+
     return jsonify(result)
+
 
 
 # handle terminal command submissions

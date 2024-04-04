@@ -11,7 +11,9 @@ let ignore_keys = [
     'Alt',
     'Delete',
     'ArrowLeft',
-    'ArrowRight'
+    'ArrowRight',
+    'ArrowUp',
+    'ArrowDown'
 ]
 
 // Terminal input listener
@@ -44,19 +46,26 @@ document.addEventListener('keydown', function(event) {
             // submit terminal command
             $.post(route, form, function(data) {
                 // get output from server
-                let msg = data.message
-                console.log("terminal command: ", msg)
+                let msg = data.message;
+                console.log("terminal command: ", msg);
 
-                let _text = document.createElement('div');
-                _text.classList.add('Terminal__text');
-                _text.textContent = msg;
-                body.insertBefore(_text, prompt);
+                // Split the multiline string by line breaks
+                let lines = msg.split('\n');
+
+                // Loop through each line and create a new terminal_text element
+                lines.forEach(line => {
+                    let _text = document.createElement('div');
+                    _text.classList.add('Terminal__text');
+                    _text.textContent = line;
+                    body.insertBefore(_text, prompt);
+                });
 
             }, 'json');
+
 		}
 
 		// reset terminal
-		prompt.innerHTML = '<span class="Prompt__user">demo@kali:</span><span class="Prompt__location">~</span><span class="Prompt__dollar">$</span><span class="Prompt__cursor"></span>';
+		prompt.innerHTML = '<span class="Prompt__user">network@demo:</span><span class="Prompt__location">~</span><span class="Prompt__dollar">$</span><span class="Prompt__cursor"></span>';
 		inputText = '';
 	} 
     else if (char == 'Backspace') {
