@@ -67,6 +67,48 @@ def home():
     return render_template('home.html')
 
 
+# Page A
+@app.route('/a')
+def route_a():
+    # track client requests
+    client = request.remote_addr
+    rate_limit(client)
+
+    # log access
+    msg = f'Client: {client}, just accessed page A'
+    log_message(msg) 
+
+    return render_template('route_a.html')
+
+
+# Page B
+@app.route('/b')
+def route_b():
+    # track client requests
+    client = request.remote_addr
+    rate_limit(client)
+
+    # log access
+    msg = f'Client: {client}, just accessed page B'
+    log_message(msg) 
+
+    return render_template('route_b.html')
+
+
+# Page C
+@app.route('/c')
+def route_c():
+    # track client requests
+    client = request.remote_addr
+    rate_limit(client)
+
+    # log access
+    msg = f'Client: {client}, just accessed page C'
+    log_message(msg) 
+
+    return render_template('route_c.html')
+
+
 # Error page
 @app.route('/error')
 def error():
@@ -155,6 +197,7 @@ def terminal_output(command):
             $ >
             $ : [help]       Displays terminal command information
             $ : [clear]      Clears the terminal screen
+            $ : [traffic]    Shows Server traffic statistics
             $ : [suspicious] Show clients with suspicious activity
             $ : [blocked]    Show clients that have been blacklisted
             $ : [firewall]   Shows the current firewall configuration
@@ -163,6 +206,19 @@ def terminal_output(command):
             '''
             result['message'] = help_menu
         
+        case "traffic":
+            # use f-string to insert traffic stats for each route
+            traffic = '''
+            ============================================
+            _________________Traffic____________________
+            $ >
+            $ >
+            $ >
+            $ >
+            ============================================
+            '''
+            result['message'] = traffic
+
         case "suspicious":
             msg_body = ""
             for client, data in client_activity.items():
