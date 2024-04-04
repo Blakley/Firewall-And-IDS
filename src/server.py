@@ -8,6 +8,9 @@ from flask import Flask, request, render_template, jsonify, url_for, redirect
 # make flask instance
 app = Flask(__name__)  
 
+# {client_address : requests_within_last_minute}
+client_activity = {}
+
 # blocked ip addresses
 blocked_clients = []
 
@@ -57,26 +60,47 @@ def restrict_ips():
         return redirect(url_for('error'))
 
 
-# Handle logging client traffic
-def accessed(page):
-    # log client access
+# Handles logging client traffic/messages
+def log_message(msg):
     _newlog = logging.getLogger('logs')
     _newlog.info(
-        f"Client: {request.remote_addr}, just accessed the {page} page"
+        f"{msg}"
     )
 
 
 # Home page
 @app.route('/')
 def home():
-    accessed("home") # log request
+    # track client requests
+    client = request.remote_addr
+    result = rate_limit(client)
+
+    # log access
+    msg = f'Client: {client}, just accessed the home page'
+    log_message(msg) 
+
+    # client exceeded request threshold
+    if result:
+        msg = f'Client: {client} has been blocked. Sent {client_activity[client]} requests in within the last minute'
+        log_message(msg)
+        return render_template('error.html')
+    
+    # check if client is suspicious
+    if client_activity[client] >= 100:
+        msg = f'[Suspicious activity deteacted] : Client {client}, has made {client_activity[client]} requests within the last minute'
+        log_message(msg)
+
     return render_template('home.html')
 
 
 # Error page
 @app.route('/error')
 def error():
-    accessed("error") # log request
+    # log access
+    client = request.remote_addr
+    msg = f'Client: {client}, just accessed the error page'
+    log_message(msg) 
+    
     return render_template('error.html')
 
 
@@ -87,45 +111,37 @@ def error():
 '''
 
 # handle rate limiting
-def rate_limit():
+def rate_limit(client):
     logs = 'utils/logfile'
 
     # allowed requests per minute
     rate_limit_window = 60
 
-    # allowed requests per 3 minutes
-    rate_limit_window_b = 180
-
-    # calculate the time threshold (1 minutes ago)
+    # calculate the time threshold (1 minute ago)
     window_1 = datetime.now() - timedelta(seconds=rate_limit_window)
-    # calculate the time threshold (3 minutes ago)
-    window_3 = datetime.now() - timedelta(seconds=rate_limit_window_b)
 
     # read logfile and count website requests from the same client address within the time window
     _requests = 0
     with open(logs, 'r') as log_file:
         for line in log_file:
-            timestamp_str = line.split(' - ')[0]
-            timestamp = datetime.strptime(timestamp_str, '%Y-%m-%d %H:%M:%S,%f')
-            if timestamp > window_1:
-                _requests += 1
+            if "Client: {}".format(client) in line:
+                timestamp_str, client_info = line.split(' - ')
+                timestamp = datetime.strptime(timestamp_str, '%Y-%m-%d %H:%M:%S,%f')
+                if timestamp > window_1:
+                    _requests += 1
 
+    # update client_activity dictionary
+    if client not in client_activity:
+        client_activity[client] = 1
+    else:
+        client_activity[client] += _requests
 
-    # check if site page requests exceeds threshold
-    threshold = 10
-    if _requests >= threshold:
-        pass
+    # check if client exceeded request threshold
+    if client_activity[client] >= 500:
+        blocked_clients.append(client)
+        return True
     
-    '''
-        log that the client has exceeded their threshold, (block them for x amount of time)
-        if the client exceeded the second threshold, block them (log it)
-        [send to the front-end terminal]:
-            1. suspecious activty: clients that are on hold
-            2. clients blocked
-            3. amount of traffic within last x minutes
-            4.
-
-    '''
+    return False
 
 
 '''
@@ -146,10 +162,19 @@ def terminal_output(command):
         'message' : ''
     }
 
+    '''
+        iterate logs, show all clients in the last minute that is suspicious
+        iterate logs, show all clients that have been blocked
+    '''
+
     # will return information from logged server content
     match command:
         case "help":
             result['message'] = "showing help"
+        case "suspicious":
+            pass
+        case "blocked":
+            pass
         case _:
             result['message'] = "random message"
     
