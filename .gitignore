@@ -1,7 +1,3 @@
 # ignore
-.js
-.html
-
-# dont ignore
-!page.js
-!server.js
+src/**/*.html
+src/**/*.css
