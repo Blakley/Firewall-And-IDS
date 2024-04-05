@@ -199,7 +199,7 @@ def terminal_output(command):
             $ : [clear]      Clears the terminal screen
             $ : [traffic]    Shows Server traffic statistics
             $ : [suspicious] Show clients with suspicious activity
-            $ : [blocked]    Show clients that have been blacklisted
+            $ : [blacklist]  Show clients that have been blacklisted
             $ : [firewall]   Shows the current firewall configuration
             $ : [ids]        Shows the current IDS configuration
             ==========================================================================
@@ -208,6 +208,8 @@ def terminal_output(command):
         
         case "traffic":
             # use f-string to insert traffic stats for each route
+            # x amount of requests made to route y in the last minute
+
             traffic = '''
             ============================================
             _________________Traffic____________________
@@ -223,7 +225,7 @@ def terminal_output(command):
             msg_body = ""
             for client, data in client_activity.items():
                 if data["requests"] >= 100 and client not in blocked_clients:
-                    msg = f'[Abnormality]: Client {client} is showcasing suspicious behavior due to having sent {data["requests"]} requests within the last minute\n'
+                    msg = f'[Suspicion Alert]: Client {client} is showcasing suspicious behavior due to having sent {data["requests"]} requests within the last minute\n'
                     msg_body += msg
 
             if msg_body == "":
@@ -234,7 +236,7 @@ def terminal_output(command):
         case "blocked":
             msg_body = ""
             for _ip in blocked_clients:
-                msg = f'[Intruder]: Client {_ip} has been blacklisted due to sending more than 500 requests within a minute\n'    
+                msg = f'[Blacklist Alert]: Client {_ip} has been blacklisted due to sending more than 500 requests within a minute\n'    
                 msg_body += msg
 
             if msg_body == "":
