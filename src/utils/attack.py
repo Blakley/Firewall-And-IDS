@@ -35,7 +35,7 @@ class Attack():
 
 
     # website crawler
-    def requester(self, client, basic):
+    def requester(self, client):
         # setup socket
         socket = http.client.HTTPConnection('localhost', 9000, source_address=(client, 0))
 
@@ -48,7 +48,8 @@ class Attack():
         status_code = response.status
 
         c = '[' + colored(f'Crawler', 'magenta', attrs=['bold']) + ']'
-        print(f'{c} : Client {client} - accessed {random_route}, status: {status_code}')
+        r = colored(f'{random_route}', 'blue', attrs=['underline'])
+        print(f'{c} : Client {client} - accessed {r}, status: {status_code}')
 
         # close the socket
         socket.close()
@@ -79,9 +80,9 @@ class Attack():
         while True:
             for client in self.clients_a:
                 # send x amount of requests from the client
-                x = random.randint(1, 200)
+                x = random.randint(1, 100)
                 for _ in range(x):
-                    self.requester(client, False)
+                    self.requester(client)
 
                 time.sleep(sleep_time)
 
@@ -91,9 +92,9 @@ class Attack():
         while True:
             for client in self.clients_b:
                 # send x amount of requests from the client
-                x = random.randint(200, 1000)
+                x = random.randint(300, 1000)
                 for _ in range(x):
-                    self.requester(client, False) 
+                    self.requester(client) 
     
 # start
 if __name__ == '__main__':

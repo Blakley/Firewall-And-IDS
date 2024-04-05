@@ -2,6 +2,7 @@
 import os
 import time
 import logging
+from collections import Counter
 from datetime import datetime, timedelta
 from flask import Flask, request, render_template, jsonify, url_for, redirect
 
@@ -58,7 +59,7 @@ def log_message(msg):
 def home():
     # track client requests
     client = request.remote_addr
-    rate_limit(client)
+    rate_limit(client, "home")
 
     # log access
     msg = f'Client: {client}, just accessed the home page'
@@ -72,7 +73,7 @@ def home():
 def route_a():
     # track client requests
     client = request.remote_addr
-    rate_limit(client)
+    rate_limit(client, "a")
 
     # log access
     msg = f'Client: {client}, just accessed page A'
@@ -86,7 +87,7 @@ def route_a():
 def route_b():
     # track client requests
     client = request.remote_addr
-    rate_limit(client)
+    rate_limit(client, "b")
 
     # log access
     msg = f'Client: {client}, just accessed page B'
@@ -100,7 +101,7 @@ def route_b():
 def route_c():
     # track client requests
     client = request.remote_addr
-    rate_limit(client)
+    rate_limit(client, "c")
 
     # log access
     msg = f'Client: {client}, just accessed page C'
@@ -135,7 +136,11 @@ def restrict_ips():
 
 
 # handle rate limiting
-def rate_limit(client):
+def rate_limit(client, page):
+    # skip host client
+    if client == "127.0.0.1":
+        return
+
     logs = 'utils/logfile'
 
     # allowed requests per minute
@@ -148,14 +153,14 @@ def rate_limit(client):
     if client in client_activity:
         last_update_time = client_activity[client]["timestamp"]
         if datetime.now() - last_update_time >= timedelta(seconds=rate_limit_window):
-            # reset request count for the client
-            client_activity[client]["requests"] = 0
+            # reset request count and pages array for the client
+            client_activity[client] = {"requests": 0, "timestamp": datetime.now(), "pages": []}
 
     # read logfile and count website requests from the same client address within the time window
     _requests = 0
     with open(logs, 'r') as log_file:
         for line in log_file:
-            if "Client: {}".format(client) in line:
+             if f"Client: {client}" in line:
                 timestamp_str, client_info = line.split(' - ')
                 timestamp = datetime.strptime(timestamp_str, '%Y-%m-%d %H:%M:%S,%f')
                 if timestamp > window:
@@ -163,10 +168,11 @@ def rate_limit(client):
 
     # update client_activity dictionary
     if client not in client_activity:
-        client_activity[client] = {"requests": 1, "timestamp": datetime.now()}
+        client_activity[client] = {"requests": 1, "timestamp": datetime.now(), "pages": [page]}
     else:
         client_activity[client]["requests"] += 1
         client_activity[client]["timestamp"] = datetime.now()
+        client_activity[client]["pages"].append(page)
 
     # check if client exceeded request threshold
     if client_activity[client]["requests"] >= 500:
@@ -207,18 +213,22 @@ def terminal_output(command):
             result['message'] = help_menu
         
         case "traffic":
-            # use f-string to insert traffic stats for each route
-            # x amount of requests made to route y in the last minute
-
-            traffic = '''
-            ============================================
-            _________________Traffic____________________
-            $ >
-            $ >
-            $ >
-            $ >
-            ============================================
-            '''
+            # calculate total page statistics across all clients
+            page_statistics = {}
+            for data in client_activity.values():
+                for page, count in Counter(data.get("pages", [])).items():
+                    page_statistics[page] = page_statistics.get(page, 0) + count
+            
+            # construct the traffic message
+            traffic = "\n============================================\n"
+            traffic += "_________________Traffic____________________\n"
+            traffic += "$ : Requests made within the last minute\n"
+            traffic += "$ >\n"
+            
+            for page, total_requests in page_statistics.items():
+                traffic += f"{total_requests} requests made to {page} route\n"
+            
+            traffic += "============================================\n"
             result['message'] = traffic
 
         case "suspicious":
@@ -233,7 +243,7 @@ def terminal_output(command):
 
             result['message'] = msg_body
         
-        case "blocked":
+        case "blacklist":
             msg_body = ""
             for _ip in blocked_clients:
                 msg = f'[Blacklist Alert]: Client {_ip} has been blacklisted due to sending more than 500 requests within a minute\n'    
@@ -247,7 +257,7 @@ def terminal_output(command):
         case "firewall":
             # use f-string to insert current firewall config values
             firewall_config = '''
-            ============================================
+            \n============================================
             __________𝗙𝗶𝗿𝗲𝘄𝗮𝗹𝗹 𝗖𝗼𝗻𝗳𝗶𝗴𝘂𝗿𝗮𝘁𝗶𝗼𝗻_________
             $ >
             $ >
@@ -258,7 +268,7 @@ def terminal_output(command):
         case "ids":
             # use f-string to insert current ids config values
             ids_config = '''
-            ============================================
+            \n============================================
             ____________𝗜𝗗𝗦  𝗖𝗼𝗻𝗳𝗶𝗴𝘂𝗿𝗮𝘁𝗶𝗼𝗻___________
             $ >
             $ >
