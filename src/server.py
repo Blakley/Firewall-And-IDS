@@ -224,9 +224,12 @@ def terminal_output(command):
             $ : [alerts suspicious] Show clients with suspicious activity
             $ : [alerts blacklist]  Show clients that have been blacklisted
 
+            $ : [move all list_a list_b]  Moves all clients from one list to another
+            $ : [move N list_a list_b]    Moves the first N clients from one list to another
+
             $ : [remove all suspicious] Removes all clients from the given alert list
             $ : [remove all blacklist]  Removes all clients from the given alert list
-            $ : [remove (n) (list)]     Removes the first N clients from the given list
+            $ : [remove N list_name]    Removes the first N clients from the given list
         
             $ : [firewall]   Shows the current firewall configuration
             $ : [ids]        Shows the current IDS configuration
@@ -289,6 +292,19 @@ def terminal_output(command):
 
             result['message'] = msg_body
 
+        # moves all clients from suspicious to blacklist
+        case "move all suspicious blacklist":
+            msg_body = ""
+            result['message'] = msg_body
+
+        # moves all clients from blacklist to suspicious
+        case "move all blacklist suspicious":
+            msg_body = ""
+            result['message'] = msg_body
+
+        # moves the first N clients from one list to another list
+        # case
+
         # resets all clients, 'requests' value from client_activity, clear logfile
         case "remove all suspicious":
             msg_body = ""
@@ -298,6 +314,9 @@ def terminal_output(command):
         case "remove all blacklist":
             msg_body = ""
             result['message'] = msg_body
+
+        # removes the first N clients from the given list
+        # case 
 
         # show the Firewall configuration
         case "firewall":
