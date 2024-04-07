@@ -17,7 +17,7 @@ The goal of this project is to demonstrate cybersecurity defenses of enterprise 
 ## Usage
 Clone the repository:
 ```bash 
-git clone https://github.com/yourusername/Firewall-And-IDS.git
+git clone https://github.com/blakley/Firewall-And-IDS.git
 ```
 
 ## Installation
