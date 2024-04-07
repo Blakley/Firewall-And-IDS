@@ -3,6 +3,8 @@
 ## Introduction
 The goal of this project is to demonstrate cybersecurity defenses of enterprise networks by implementing and evaluating firewall configurations and Intrusion Detection Systems (IDS).
 
+![Terminal Output](src/static/img/demo.png)
+
 ## Features
 - **Firewall Configuration:** Implement a firewall to control and monitor incoming and outgoing network traffic based on predefined security rules.
 
