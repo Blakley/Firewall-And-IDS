@@ -203,6 +203,9 @@ def rate_limit(client, page):
 
 # returns the output of the specified command
 def terminal_output(command):
+    global client_activity
+    global blocked_clients
+
     # initialize the result dictionary
     result = {
         'message' : ''
@@ -214,25 +217,25 @@ def terminal_output(command):
         case "help":
             help_menu = '''
             =================================================================================
-            __________________________𝗙𝗜𝗥𝗘𝗪𝗔𝗟𝗟 & 𝗜𝗗𝗦 𝗠𝗘𝗡𝗨____________________________
+                                      𝗙𝗜𝗥𝗘𝗪𝗔𝗟𝗟 & 𝗜𝗗𝗦 𝗠𝗘𝗡𝗨                            
             $ >
-            $ : [help]       Displays terminal command information
-            $ : [clear]      Clears the terminal screen
-            $ : [traffic]    Shows server traffic statistics
+            $ : [help]       Displays terminal command information
+            $ : [clear]      Clears the terminal screen
+            $ : [traffic]    Shows server traffic statistics
             
-            $ : [alerts]            Shows statistics for each alert type
-            $ : [alerts suspicious] Show clients with suspicious activity
-            $ : [alerts blacklist]  Show clients that have been blacklisted
+            $ : [alerts]              Shows statistics for each alert type
+            $ : [alerts suspicious]   Show clients with suspicious activity
+            $ : [alerts blacklist]    Show clients that have been blacklisted
 
-            $ : [move all list_a list_b]  Moves all clients from one list to another
-            $ : [move N list_a list_b]    Moves the first N clients from one list to another
+            $ : [move all suspicious blacklist]  Moves all clients from one list to another
+            $ : [move N list_a list_b]           Moves the Nth client from one list to another
 
-            $ : [remove all suspicious] Removes all clients from the given alert list
-            $ : [remove all blacklist]  Removes all clients from the given alert list
-            $ : [remove N list_name]    Removes the first N clients from the given list
+            $ : [remove all suspicious] Removes all clients from the given alert list
+            $ : [remove all blacklist]  Removes all clients from the given alert list
+            $ : [remove N list_name]    Removes the Nth client from the given list
         
-            $ : [firewall]   Shows the current firewall configuration
-            $ : [ids]        Shows the current IDS configuration
+            $ : [firewall]  Shows the current firewall configuration
+            $ : [ids]       Shows the current IDS configuration
             =================================================================================
             '''
             result['message'] = help_menu
@@ -259,13 +262,11 @@ def terminal_output(command):
 
         # shows statistics for alert types
         case "alerts":
-            '''
-                show overall statistics for suspicious and blacklist alerts
-                1. total number of suspicious alerts
-                2. total number of blacklist alerts
-            '''
-            msg_body = ""
-            result['message'] = msg_body
+            total_suspicious = len([client for client, data in client_activity.items() if data["requests"] >= 100 and client not in blocked_clients])
+            total_blacklist = len(blocked_clients)
+            
+            alert_stats = f'Total Suspicious Alerts: {total_suspicious}\nTotal Blacklist Alerts: {total_blacklist}'
+            result['message'] = alert_stats
 
         # shows the clients that've been marked as suspicious
         case "alerts suspicious":
@@ -294,58 +295,133 @@ def terminal_output(command):
 
         # moves all clients from suspicious to blacklist
         case "move all suspicious blacklist":
-            msg_body = ""
-            result['message'] = msg_body
+            blocked_clients.extend([client for client, data in client_activity.items() if data["requests"] >= 100])
+            result['message'] = "All suspicious clients have been moved to the blacklist."
 
-        # moves all clients from blacklist to suspicious
-        case "move all blacklist suspicious":
-            msg_body = ""
-            result['message'] = msg_body
-
-        # moves the first N clients from one list to another list
-        # case
+        # moves the Nth client from one list to another list
+        case command if command.startswith("move"):
+            parts = command.split()
+            
+            if len(parts) == 4 and parts[0] == "move" and parts[1].isdigit():
+                num_client = int(parts[1]) - 1  
+                source_list_name = parts[2]
+                destination_list_name = parts[3]
+                
+                # check if the source and destination lists are different
+                if source_list_name != destination_list_name:
+                    if source_list_name == "suspicious" and num_client < len(client_activity):
+                        # Get the Nth client from the source list
+                        client_to_move = list(client_activity.keys())[num_client]
+                        
+                        # Move the client to the destination list
+                        if destination_list_name == "blacklist":
+                            # Add the client to the blacklist
+                            if client_to_move not in blocked_clients:
+                                blocked_clients.append(client_to_move)
+                                result['message'] = f"Moved the {num_client+1}th client from suspicious to blacklist."
+                            else:
+                                result['message'] = "Client is already in the blacklist."
+                            
+                            # Remove the client from the suspicious list
+                            del client_activity[client_to_move]
+                        elif destination_list_name == "suspicious":
+                            result['message'] = "Invalid destination list. Use 'blacklist' as the destination list."
+                        else:
+                            result['message'] = "Invalid destination list name. Use 'suspicious' or 'blacklist'."
+                    
+                    elif source_list_name == "blacklist" and num_client < len(blocked_clients):
+                        # Get the Nth client from the source list
+                        client_to_move = blocked_clients[num_client]
+                        
+                        # Move the client to the destination list
+                        if destination_list_name == "suspicious":
+                            # Add the client to the suspicious list
+                            if client_to_move not in client_activity:
+                                client_activity[client_to_move] = {"requests": 0, "pages": []}
+                                result['message'] = f"Moved the {num_client+1}th client from blacklist to suspicious."
+                            else:
+                                result['message'] = "Client is already in the suspicious list."
+                            
+                            # Remove the client from the blacklist
+                            blocked_clients.remove(client_to_move)
+                        elif destination_list_name == "blacklist":
+                            result['message'] = "Invalid destination list. Use 'suspicious' as the destination list."
+                        else:
+                            result['message'] = "Invalid destination list name. Use 'suspicious' or 'blacklist'."
+                    
+                    else:
+                        result['message'] = "Invalid index or source list name."
+                else:
+                    result['message'] = "Source and destination lists cannot be the same."
+            else:
+                result['message'] = "Invalid command syntax. Use 'move N source_list destination_list'."
 
         # resets all clients, 'requests' value from client_activity, clear logfile
         case "remove all suspicious":
-            msg_body = ""
-            result['message'] = msg_body
+            client_activity = {client: {"requests": 0, "pages": []} for client in client_activity if client_activity[client]["requests"] < 100}
+            result['message'] = "All suspicious clients have been removed."
 
         # removes all clients from blocked_clients 
         case "remove all blacklist":
-            msg_body = ""
-            result['message'] = msg_body
+            blocked_clients = []
+            result['message'] = "All clients from the blacklist have been removed."
 
-        # removes the first N clients from the given list
-        # case 
-
+        # removes the Nth client from the given list
+        case command if command.startswith("remove"):
+            parts = command.split()
+            
+            if len(parts) == 3 and parts[0] == "remove" and parts[1].isdigit():
+                num_client = int(parts[1]) - 1  
+                list_name = parts[2]
+                
+                if list_name == "suspicious":
+                    if num_client < len(client_activity):
+                        removed_client = list(client_activity.keys())[num_client]
+                        del client_activity[removed_client]
+                        result['message'] = f"Removed the {num_client+1}th client from the suspicious list."
+                    else:
+                        result['message'] = f"Invalid index. There are only {len(client_activity)} clients in the suspicious list."
+                
+                elif list_name == "blacklist":
+                    if num_client < len(blocked_clients):
+                        removed_client = blocked_clients[num_client]
+                        blocked_clients.pop(num_client)
+                        result['message'] = f"Removed the {num_client+1}th client from the blacklist."
+                    else:
+                        result['message'] = f"Invalid index. There are only {len(blocked_clients)} clients in the blacklist."
+                
+                else:
+                    result['message'] = "Invalid list name. Use 'suspicious' or 'blacklist'."
+                
         # show the Firewall configuration
         case "firewall":
-            # use f-string to insert the dict key, values from firewall_config variable
-            _config = '''
+            # Format the firewall configuration JSON into a string with custom indentation
+            custom_indent = '    '
+            firewall_message = f'''
             \n============================================
-            __________𝗙𝗶𝗿𝗲𝘄𝗮𝗹𝗹 𝗖𝗼𝗻𝗳𝗶𝗴𝘂𝗿𝗮𝘁𝗶𝗼𝗻_________
-            $ >
-            $ >
+                      𝗙𝗶𝗿𝗲𝘄𝗮𝗹𝗹 𝗖𝗼𝗻𝗳𝗶𝗴𝘂𝗿𝗮𝘁𝗶𝗼𝗻         
+            $ > Allowed Traffic: {json.dumps(firewall_config.get("allowed_traffic", "N/A"), indent=custom_indent)}
+            $ > Denied Headers: {json.dumps(firewall_config.get("denied_headers", "N/A"), indent=custom_indent)}
             ============================================
             '''
-            result['message'] = _config
+            result['message'] = firewall_message
 
         # show the IDS configuration
         case "ids":
-            # use f-string to insert the dict key, values from ids_config variable
-            _config = '''
+            # Format the IDS configuration JSON into a string with custom indentation
+            custom_indent = '    '
+            ids_message = f'''
             \n============================================
-            ____________𝗜𝗗𝗦  𝗖𝗼𝗻𝗳𝗶𝗴𝘂𝗿𝗮𝘁𝗶𝗼𝗻___________
-            $ >
-            $ >
+                        𝗜𝗗𝗦  𝗖𝗼𝗻𝗳𝗶𝗴𝘂𝗿𝗮𝘁𝗶𝗼𝗻           
+            $ > Thresholds: {json.dumps(ids_config.get("thresholds", "N/A"), indent=custom_indent)}
+            $ > Rules: {json.dumps(ids_config.get("rules", "N/A"), indent=custom_indent)}
             ============================================
             '''
-            result['message'] = _config
+            result['message'] = ids_message
 
-        # default case: handle invalid commands
         case _:
-            result['message'] = "invalid command entered"
-
+            result['message'] = "invalid command entered, type 'help' for the list of commands"
+        
     return jsonify(result)
 
 
