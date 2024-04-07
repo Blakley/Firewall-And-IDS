@@ -203,30 +203,38 @@ def rate_limit(client, page):
 
 # returns the output of the specified command
 def terminal_output(command):
-    # Initialize the result dictionary
+    # initialize the result dictionary
     result = {
         'message' : ''
     }
 
     # Get information from logged server content
     match command:
+        # shows the help menu for the terminal
         case "help":
-            # handle various commands
             help_menu = '''
-            ==========================================================================
-            ______________________________𝗛𝗘𝗟𝗣 𝗠𝗘𝗡𝗨_______________________________
+            =================================================================================
+            __________________________𝗙𝗜𝗥𝗘𝗪𝗔𝗟𝗟 & 𝗜𝗗𝗦 𝗠𝗘𝗡𝗨____________________________
             $ >
             $ : [help]       Displays terminal command information
             $ : [clear]      Clears the terminal screen
-            $ : [traffic]    Shows Server traffic statistics
-            $ : [suspicious] Show clients with suspicious activity
-            $ : [blacklist]  Show clients that have been blacklisted
+            $ : [traffic]    Shows server traffic statistics
+            
+            $ : [alerts]            Shows statistics for each alert type
+            $ : [alerts suspicious] Show clients with suspicious activity
+            $ : [alerts blacklist]  Show clients that have been blacklisted
+
+            $ : [remove all suspicious] Removes all clients from the given alert list
+            $ : [remove all blacklist]  Removes all clients from the given alert list
+            $ : [remove (n) (list)]     Removes the first N clients from the given list
+        
             $ : [firewall]   Shows the current firewall configuration
             $ : [ids]        Shows the current IDS configuration
-            ==========================================================================
+            =================================================================================
             '''
             result['message'] = help_menu
         
+        # shows statistics for server traffic
         case "traffic":
             # calculate total page statistics across all clients
             page_statistics = {}
@@ -246,7 +254,18 @@ def terminal_output(command):
             traffic += "============================================\n"
             result['message'] = traffic
 
-        case "suspicious":
+        # shows statistics for alert types
+        case "alerts":
+            '''
+                show overall statistics for suspicious and blacklist alerts
+                1. total number of suspicious alerts
+                2. total number of blacklist alerts
+            '''
+            msg_body = ""
+            result['message'] = msg_body
+
+        # shows the clients that've been marked as suspicious
+        case "alerts suspicious":
             msg_body = ""
             for client, data in client_activity.items():
                 if data["requests"] >= 100 and client not in blocked_clients:
@@ -257,8 +276,9 @@ def terminal_output(command):
                 msg_body = f'No suspicious activities to report'
 
             result['message'] = msg_body
-        
-        case "blacklist":
+
+        # shows the clients in blocked_clients
+        case "alerts blacklist":
             msg_body = ""
             for _ip in blocked_clients:
                 msg = f'[Blacklist Alert]: Client {_ip} has been blacklisted due to sending more than 500 requests within a minute\n'    
@@ -268,29 +288,42 @@ def terminal_output(command):
                 msg_body = f'No blocked clients to report'
 
             result['message'] = msg_body
-        
+
+        # resets all clients, 'requests' value from client_activity, clear logfile
+        case "remove all suspicious":
+            msg_body = ""
+            result['message'] = msg_body
+
+        # removes all clients from blocked_clients 
+        case "remove all blacklist":
+            msg_body = ""
+            result['message'] = msg_body
+
+        # show the Firewall configuration
         case "firewall":
-            # use f-string to insert current firewall config values
-            firewall_config = '''
+            # use f-string to insert the dict key, values from firewall_config variable
+            _config = '''
             \n============================================
             __________𝗙𝗶𝗿𝗲𝘄𝗮𝗹𝗹 𝗖𝗼𝗻𝗳𝗶𝗴𝘂𝗿𝗮𝘁𝗶𝗼𝗻_________
             $ >
             $ >
             ============================================
             '''
-            result['message'] = firewall_config
+            result['message'] = _config
 
+        # show the IDS configuration
         case "ids":
-            # use f-string to insert current ids config values
-            ids_config = '''
+            # use f-string to insert the dict key, values from ids_config variable
+            _config = '''
             \n============================================
             ____________𝗜𝗗𝗦  𝗖𝗼𝗻𝗳𝗶𝗴𝘂𝗿𝗮𝘁𝗶𝗼𝗻___________
             $ >
             $ >
             ============================================
             '''
-            result['message'] = ids_config
+            result['message'] = _config
 
+        # default case: handle invalid commands
         case _:
             result['message'] = "invalid command entered"
 

@@ -653,10 +653,17 @@ section{
 .Prompt__dollar,.Terminal__text{
     color:white;
 }
+
 .Terminal__Prompt{
     display:flex;
     color: white;
 }
+
+/* inner text highlight */
+.terminal_highlight {
+    color: rgb(214 69 69);
+}
+
 .Prompt__user{
     color:#87d441
 }

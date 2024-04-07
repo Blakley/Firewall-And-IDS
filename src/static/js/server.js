@@ -13,7 +13,8 @@ let ignore_keys = [
     'ArrowLeft',
     'ArrowRight',
     'ArrowUp',
-    'ArrowDown'
+    'ArrowDown',
+    'CapsLock'
 ]
 
 // Terminal input listener
@@ -55,8 +56,10 @@ document.addEventListener('keydown', function(event) {
                 // Loop through each line and create a new terminal_text element
                 lines.forEach(line => {
                     let _text = document.createElement('div');
+                    
                     _text.classList.add('Terminal__text');
-                    _text.textContent = line;
+                    _text.innerHTML = color_terminal(line); 
+
                     body.insertBefore(_text, prompt);
                 });
 
@@ -84,3 +87,7 @@ document.addEventListener('keydown', function(event) {
 	}
 });
 
+// function to apply color to text enclosed in '[' and ']'
+function color_terminal(line) {
+    return line.replace(/\[(.*?)\]/g, '<span class="terminal_highlight">$&</span>');
+}
