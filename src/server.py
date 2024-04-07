@@ -1,10 +1,15 @@
 # imports
-import os
-import time
+import json
 import logging
 from collections import Counter
 from datetime import datetime, timedelta
 from flask import Flask, request, render_template, jsonify, url_for, redirect
+
+'''
+    =======================================
+                  Globals
+    =======================================
+'''
 
 # make flask instance
 app = Flask(__name__)  
@@ -15,9 +20,19 @@ client_activity = {}
 # blocked ip addresses
 blocked_clients = []
 
+# load firewall configuration
+firewall_config = {}
+with open('static/json/firewall_config.json') as f:
+    firewall_config = json.load(f)
+
+# load ids configuration
+ids_config = {}
+with open('static/json/ids_config.json') as f:
+    ids_config = json.load(f)
+
 '''
     =======================================
-            Configure server logging
+          Configure server logging
     =======================================
 '''
 

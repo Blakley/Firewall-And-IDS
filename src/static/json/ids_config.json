@@ -1,0 +1,15 @@
+{
+    "thresholds": {
+      "high": 1000,
+      "medium": 300,
+      "low": 100
+    },
+    "rules": [
+      {
+        "type": "suspicious",
+        "pattern": "Excessive page requests",
+        "severity": "medium"
+      }
+    ]
+  }
+  

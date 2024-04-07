@@ -1,0 +1,15 @@
+{
+    "allowed_traffic": [
+        {
+        "ports": [9000],
+        "protocols": ["tcp"]
+        }
+    ],
+    "denied_headers": [
+        {
+        "flags": ["authorization", "forwarded"],
+        "methods": ["put", "delete", "patch", "options"]
+        }
+    ]
+}
+  
