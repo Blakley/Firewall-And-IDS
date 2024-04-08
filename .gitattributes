@@ -1,2 +1,3 @@
 static/css/* linguist-vendored
 static/bs/* linguist-vendored
+*.css linguist-vendored
