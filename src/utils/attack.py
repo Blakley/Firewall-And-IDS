@@ -1,6 +1,7 @@
 # imports
 import time
 import random
+import requests
 import threading
 import http.client
 from termcolor import colored
@@ -35,13 +36,40 @@ class Attack():
 
 
     # website crawler
-    def requester(self, client):
+    def requester(self, client, level):
         # setup socket
         socket = http.client.HTTPConnection('localhost', 9000, source_address=(client, 0))
 
         # send request to a random server page
         random_route = self.url + random.choice(self.routes)
-        socket.request('GET', random_route)
+        
+        # header with auth and forwarded values
+        _header_a = {
+            "Authorization" : "Bearer random_header_value",
+            "Forwarded"     : "random forwareded IP"
+        }
+
+        # header with custom content length
+        _header_b = {
+            "Content-Length" : random.randint(1000, 10000)
+        }
+        
+        _methods = ['POST', 'DELETE', 'PUT', 'DELETE']
+        random_method = random.choice(_methods)
+
+        if level == "basic":
+            socket.request('GET', random_route)
+        else:
+            if random.randint(1, 100) <= 80:
+                socket.request('GET', random_route)
+            else:
+                if random.randint(1, 100) >= 50:
+                    if random.randint(1, 100) >= 50:
+                        socket.request('GET', random_route, headers=_header_a)
+                    else:
+                        socket.request('GET', random_route, headers=_header_b)
+                else:
+                    socket.request(random_method, random_route)
 
         # get the response
         response = socket.getresponse()
@@ -80,9 +108,9 @@ class Attack():
         while True:
             for client in self.clients_a:
                 # send x amount of requests from the client
-                x = random.randint(1, 100)
+                x = random.randint(1, 300)
                 for _ in range(x):
-                    self.requester(client)
+                    self.requester(client, "basic")
 
                 time.sleep(sleep_time)
 
@@ -94,8 +122,8 @@ class Attack():
                 # send x amount of requests from the client
                 x = random.randint(300, 1000)
                 for _ in range(x):
-                    self.requester(client) 
-    
+                    self.requester(client, "intensive") 
+
 # start
 if __name__ == '__main__':
     attack = Attack()

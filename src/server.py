@@ -75,10 +75,12 @@ def home():
     # track client requests
     client = request.remote_addr
     rate_limit(client, "home")
+    result = restrict_headers(client, 'home', request)
 
-    # log access
-    msg = f'Client: {client}, just accessed the home page'
-    log_message(msg) 
+    # log successful access
+    if result:
+        msg = f'Client: {client}, just accessed the home page'
+        log_message(msg) 
 
     return render_template('home.html')
 
@@ -89,10 +91,12 @@ def route_a():
     # track client requests
     client = request.remote_addr
     rate_limit(client, "a")
+    result = restrict_headers(client, 'a', request)
 
     # log access
-    msg = f'Client: {client}, just accessed page A'
-    log_message(msg) 
+    if result:
+        msg = f'Client: {client}, just accessed page A'
+        log_message(msg) 
 
     return render_template('route_a.html')
 
@@ -103,10 +107,12 @@ def route_b():
     # track client requests
     client = request.remote_addr
     rate_limit(client, "b")
+    result = restrict_headers(client, 'b', request)
 
     # log access
-    msg = f'Client: {client}, just accessed page B'
-    log_message(msg) 
+    if result:
+        msg = f'Client: {client}, just accessed page B'
+        log_message(msg) 
 
     return render_template('route_b.html')
 
@@ -117,10 +123,12 @@ def route_c():
     # track client requests
     client = request.remote_addr
     rate_limit(client, "c")
+    result = restrict_headers(client, 'c', request)
 
     # log access
-    msg = f'Client: {client}, just accessed page C'
-    log_message(msg) 
+    if result:
+        msg = f'Client: {client}, just accessed page C'
+        log_message(msg) 
 
     return render_template('route_c.html')
 
@@ -142,9 +150,16 @@ def error():
     =======================================
 '''
 
+app.add_url_rule('/', 'home', home, methods=['GET'] + firewall_config["denied_headers"][0]["methods"])
+app.add_url_rule('/a', 'route_a', route_a, methods=['GET'] + firewall_config["denied_headers"][0]["methods"])
+app.add_url_rule('/b', 'route_b', route_b, methods=['GET'] + firewall_config["denied_headers"][0]["methods"])
+app.add_url_rule('/c', 'route_c', route_c, methods=['GET'] + firewall_config["denied_headers"][0]["methods"])
+
 # handle blocking addresses
 @app.before_request
 def restrict_ips():
+    global blocked_clients
+
     client_ip = request.remote_addr
     if request.endpoint != 'error' and client_ip in blocked_clients:
         return redirect(url_for('error'))
@@ -152,10 +167,13 @@ def restrict_ips():
 
 # handle rate limiting
 def rate_limit(client, page):
-    # skip host client
-    if client == "127.0.0.1":
-        return
+    global client_activity
+    global blocked_clients
 
+    # skip host client
+    # if client == "127.0.0.1":
+    #     return
+    
     logs = 'utils/logfile'
 
     # allowed requests per minute
@@ -189,12 +207,65 @@ def rate_limit(client, page):
         client_activity[client]["timestamp"] = datetime.now()
         client_activity[client]["pages"].append(page)
 
-    # check if client exceeded request threshold
-    if client_activity[client]["requests"] >= 500:
+    # check if client exceed low page request threshold
+    if client_activity[client]["requests"] >= ids_config['thresholds']['low']:
+        if "type" not in client_activity[client]:
+            client_activity[client]["type"] = ids_config["rules"][0]["pattern"]
+
+    # check if client exceed high page request threshold
+    if client_activity[client]["requests"] >= ids_config['thresholds']['high']:
         if client not in blocked_clients:
             blocked_clients.append(client)
+            del client_activity[client]
+
     
-   
+# handle firewall headers
+def restrict_headers(client, page, request):    
+    global client_activity
+
+    # check if any request uses the denied HTTP methods
+    denied_methods = firewall_config["denied_headers"][0]["methods"]
+    
+    if request.method in denied_methods:
+        msg = f'Access attempt from client {client} to page {page} using {request.method} method'
+        log_message(msg)
+
+        # update clients suspicion type
+        if client not in client_activity or "type" not in client_activity[client]:
+            client_activity[client]["type"] = f"denied method ({request.method})"     
+            client_activity[client]["timestamp"] = datetime.now()
+
+        return False
+    
+    _flaga = firewall_config["denied_headers"][0]["flags"][0]
+    _flagb = firewall_config["denied_headers"][0]["flags"][1]
+
+    if _flaga in request.headers or _flagb in request.headers:
+        msg = f'Suspicious access attempt from client {client}, headers contain Authorization or Forwarded'
+        log_message(msg)
+
+        # update clients suspicion type
+        if client not in client_activity or "type" not in client_activity[client]:
+            client_activity[client]["type"] = "suspicious headers (contains 'Authorization' or 'Forwarded')"
+            client_activity[client]["timestamp"] = datetime.now()
+
+        return False
+    
+    # check packet length if request.content_length exists and is not None
+    if request.content_length is not None and int(request.content_length) >= int(firewall_config["denied_headers"][0]["length"]):
+        msg = f'Client {client} attempted sending a packet length of {request.content_length} to page {page}'
+        log_message(msg)
+
+        # update clients suspicion type
+        if client not in client_activity or "type" not in client_activity[client]:
+            client_activity[client]["type"] = f"attempted sending a packet length of {request.content_length}"
+            client_activity[client]["timestamp"] = datetime.now()
+        
+        return False
+
+    return True
+    
+
 '''
     =======================================
               Terminal Back-end
@@ -228,11 +299,9 @@ def terminal_output(command):
             $ : [alerts blacklist]    Show clients that have been blacklisted
 
             $ : [move all suspicious blacklist]  Moves all clients from one list to another
-            $ : [move N list_a list_b]           Moves the Nth client from one list to another
 
             $ : [remove all suspicious] Removes all clients from the given alert list
             $ : [remove all blacklist]  Removes all clients from the given alert list
-            $ : [remove N list_name]    Removes the Nth client from the given list
         
             $ : [firewall]  Shows the current firewall configuration
             $ : [ids]       Shows the current IDS configuration
@@ -261,8 +330,8 @@ def terminal_output(command):
             result['message'] = traffic
 
         # shows statistics for alert types
-        case "alerts":
-            total_suspicious = len([client for client, data in client_activity.items() if data["requests"] >= 100 and client not in blocked_clients])
+        case "alerts":            
+            total_suspicious = len([client for client, data in client_activity.items() if "type" in data])
             total_blacklist = len(blocked_clients)
             
             alert_stats = f'Total Suspicious Alerts: {total_suspicious}\nTotal Blacklist Alerts: {total_blacklist}'
@@ -271,13 +340,13 @@ def terminal_output(command):
         # shows the clients that've been marked as suspicious
         case "alerts suspicious":
             msg_body = ""
-            for client, data in client_activity.items():
-                if data["requests"] >= 100 and client not in blocked_clients:
-                    msg = f'[Suspicion Alert]: Client {client} is showcasing suspicious behavior due to having sent {data["requests"]} requests within the last minute\n'
-                    msg_body += msg
 
+            for client, data in client_activity.items():               
+                if "type" in data:
+                    msg_body += f'[Suspicion Alert]: Client {client} is showcasing suspicious behavior, {data["type"]}\n'
+            
             if msg_body == "":
-                msg_body = f'No suspicious activities to report'
+                msg_body = 'No suspicious activities to report'
 
             result['message'] = msg_body
 
@@ -285,7 +354,7 @@ def terminal_output(command):
         case "alerts blacklist":
             msg_body = ""
             for _ip in blocked_clients:
-                msg = f'[Blacklist Alert]: Client {_ip} has been blacklisted due to sending more than 500 requests within a minute\n'    
+                msg = f'[Blacklist Alert]: Client {_ip} has been blacklisted\n'    
                 msg_body += msg
 
             if msg_body == "":
@@ -295,70 +364,21 @@ def terminal_output(command):
 
         # moves all clients from suspicious to blacklist
         case "move all suspicious blacklist":
-            blocked_clients.extend([client for client, data in client_activity.items() if data["requests"] >= 100])
+            # Create a copy of client_activity to avoid modifying it while iterating
+            for client, data in list(client_activity.items()):
+                if "type" in data and client not in blocked_clients:
+                    blocked_clients.append(client)
+
             result['message'] = "All suspicious clients have been moved to the blacklist."
 
-        # moves the Nth client from one list to another list
-        case command if command.startswith("move"):
-            parts = command.split()
-            
-            if len(parts) == 4 and parts[0] == "move" and parts[1].isdigit():
-                num_client = int(parts[1]) - 1  
-                source_list_name = parts[2]
-                destination_list_name = parts[3]
-                
-                # check if the source and destination lists are different
-                if source_list_name != destination_list_name:
-                    if source_list_name == "suspicious" and num_client < len(client_activity):
-                        # Get the Nth client from the source list
-                        client_to_move = list(client_activity.keys())[num_client]
-                        
-                        # Move the client to the destination list
-                        if destination_list_name == "blacklist":
-                            # Add the client to the blacklist
-                            if client_to_move not in blocked_clients:
-                                blocked_clients.append(client_to_move)
-                                result['message'] = f"Moved the {num_client+1}th client from suspicious to blacklist."
-                            else:
-                                result['message'] = "Client is already in the blacklist."
-                            
-                            # Remove the client from the suspicious list
-                            del client_activity[client_to_move]
-                        elif destination_list_name == "suspicious":
-                            result['message'] = "Invalid destination list. Use 'blacklist' as the destination list."
-                        else:
-                            result['message'] = "Invalid destination list name. Use 'suspicious' or 'blacklist'."
-                    
-                    elif source_list_name == "blacklist" and num_client < len(blocked_clients):
-                        # Get the Nth client from the source list
-                        client_to_move = blocked_clients[num_client]
-                        
-                        # Move the client to the destination list
-                        if destination_list_name == "suspicious":
-                            # Add the client to the suspicious list
-                            if client_to_move not in client_activity:
-                                client_activity[client_to_move] = {"requests": 0, "pages": []}
-                                result['message'] = f"Moved the {num_client+1}th client from blacklist to suspicious."
-                            else:
-                                result['message'] = "Client is already in the suspicious list."
-                            
-                            # Remove the client from the blacklist
-                            blocked_clients.remove(client_to_move)
-                        elif destination_list_name == "blacklist":
-                            result['message'] = "Invalid destination list. Use 'suspicious' as the destination list."
-                        else:
-                            result['message'] = "Invalid destination list name. Use 'suspicious' or 'blacklist'."
-                    
-                    else:
-                        result['message'] = "Invalid index or source list name."
-                else:
-                    result['message'] = "Source and destination lists cannot be the same."
-            else:
-                result['message'] = "Invalid command syntax. Use 'move N source_list destination_list'."
+            # Remove clients from the suspicious list if they are also in blocked_clients
+            for client in blocked_clients:
+                if client in client_activity:
+                    del client_activity[client]
 
-        # resets all clients, 'requests' value from client_activity, clear logfile
+        # resets all clients, 'requests' value from client_activity
         case "remove all suspicious":
-            client_activity = {client: {"requests": 0, "pages": []} for client in client_activity if client_activity[client]["requests"] < 100}
+            client_activity = {client: data for client, data in client_activity.items() if "type" not in data}
             result['message'] = "All suspicious clients have been removed."
 
         # removes all clients from blocked_clients 
@@ -366,33 +386,6 @@ def terminal_output(command):
             blocked_clients = []
             result['message'] = "All clients from the blacklist have been removed."
 
-        # removes the Nth client from the given list
-        case command if command.startswith("remove"):
-            parts = command.split()
-            
-            if len(parts) == 3 and parts[0] == "remove" and parts[1].isdigit():
-                num_client = int(parts[1]) - 1  
-                list_name = parts[2]
-                
-                if list_name == "suspicious":
-                    if num_client < len(client_activity):
-                        removed_client = list(client_activity.keys())[num_client]
-                        del client_activity[removed_client]
-                        result['message'] = f"Removed the {num_client+1}th client from the suspicious list."
-                    else:
-                        result['message'] = f"Invalid index. There are only {len(client_activity)} clients in the suspicious list."
-                
-                elif list_name == "blacklist":
-                    if num_client < len(blocked_clients):
-                        removed_client = blocked_clients[num_client]
-                        blocked_clients.pop(num_client)
-                        result['message'] = f"Removed the {num_client+1}th client from the blacklist."
-                    else:
-                        result['message'] = f"Invalid index. There are only {len(blocked_clients)} clients in the blacklist."
-                
-                else:
-                    result['message'] = "Invalid list name. Use 'suspicious' or 'blacklist'."
-                
         # show the Firewall configuration
         case "firewall":
             # Format the firewall configuration JSON into a string with custom indentation
@@ -419,6 +412,7 @@ def terminal_output(command):
             '''
             result['message'] = ids_message
 
+        # default error case
         case _:
             result['message'] = "invalid command entered, type 'help' for the list of commands"
         

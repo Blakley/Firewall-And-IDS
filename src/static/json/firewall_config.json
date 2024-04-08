@@ -7,8 +7,9 @@
     ],
     "denied_headers": [
         {
-        "flags": ["authorization", "forwarded"],
-        "methods": ["put", "delete", "patch", "options"]
+            "flags": ["Authorization", "Forwarded"],
+            "methods": ["POST", "PUT", "DELETE", "PATCH"],
+            "length" : 1000
         }
     ]
 }
