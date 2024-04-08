@@ -36,6 +36,17 @@ class Simulate():
         self.clients_b = self.clients[midpoint:]
 
 
+    # sends a UDP packet
+    def send_udp(self):   
+        # send udp packet method 1: echo "some random packet" | nc -u localhost 9001
+        
+        # send a message to the servers udp port
+        msg = f'some random packet' 
+
+        with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as s:
+            s.sendto(msg, ('127.0.0.1', 9001))
+
+
     # website crawler
     def requester(self, client, level):
         # setup socket
@@ -116,7 +127,7 @@ class Simulate():
                 time.sleep(sleep_time)
 
 
-    # crawl the website routes intensively (potentially)
+    # crawl the website routes intensively
     def crawl_intensive(self):
         while True:
             for client in self.clients_b:
@@ -125,27 +136,13 @@ class Simulate():
                 for _ in range(x):
                     self.requester(client, "intensive") 
 
-
-    # send UDP packets
-    def send_udp(self):
-   
-        # send udp packet method 1: echo "Your packet data" | nc -u localhost 9001
-        # send udp packet method 2: 
-        '''
-            with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as s:
-                s.sendto(MESSAGE, (HOST, PORT))
-        '''
-        
-        msg = f'' 
-
-        # send a message to the servers udp port
-        with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as s:
-            s.sendto(msg, ('127.0.0.1', 9001))
-
-
+                # send UDP packets
+                # if x >= 500:
+                #     i = random.randint(1, 10)
+                #     for _ in range(i):
+                #         self.send_udp()
 
 # start
 if __name__ == '__main__':
     s = Simulate()
-    # s.crawl()
-    s.send_udp()
+    s.crawl()

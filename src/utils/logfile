@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 2024-04-07 23:37:08,558 - Client: 127.0.0.1, just accessed the home page
 2024-04-08 14:32:41,102 - Client: 127.0.0.1, just accessed the home page
 2024-04-08 15:01:58,789 - Client: 127.0.0.1, just accessed the home page
@@ -13,3 +14,5 @@
 2024-04-08 17:51:21,337 - Client: 127.0.0.1, just accessed the home page
 2024-04-08 18:07:41,619 - Client: 127.0.0.1, just accessed the home page
 2024-04-08 18:07:43,156 - Client: 127.0.0.1, just accessed the home page
+=======
+>>>>>>> 185b9f8 (Updated udp sockets)

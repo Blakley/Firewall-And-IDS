@@ -77,21 +77,22 @@ def udp_server():
 
     # setup UDP socket
     udp_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    udp_socket.bind(('127.0.0.1', 9001))  
+    udp_socket.bind(('0.0.0.0', 9001))  
     
     print("UDP connection: listening on port 9001")
     
     # view server's open udp ports: sudo nmap -sU localhost
     while True:
-        data, client = udp_socket.recvfrom(1024) 
-
-        msg = f"Client: {client}, sent a UDP packet, {data.decode('utf-8')}"
+        data, (client, _) = udp_socket.recvfrom(1024)
+        msg = f"Client: {client}, sent a UDP packet"
         log_message(msg)        
 
-        # update clients suspicion type
-        if client not in client_activity or "type" not in client_activity[client]:
-            client_activity[client]["type"] = f"attempted sending a UDP packet: {data}"
-            client_activity[client]["timestamp"] = datetime.now()
+        # track requests
+        rate_limit(client, "UDP port")
+
+        # update client's suspicion type
+        client_activity[client]["type"] = f"Unauthorized access attempt: UDP packet sent to port 9001"
+        client_activity[client]["timestamp"] = datetime.now()
     
 
 '''
@@ -202,8 +203,8 @@ def rate_limit(client, page):
     global blocked_clients
 
     # skip host client
-    # if client == "127.0.0.1":
-    #     return
+    if client == "127.0.0.1":
+        return
     
     logs = 'utils/logfile'
 
@@ -355,8 +356,11 @@ def terminal_output(command):
             traffic += "$ >\n"
             
             for page, total_requests in page_statistics.items():
-                traffic += f"{total_requests} requests made to {page} route\n"
-            
+                if page == 'UDP port':
+                    traffic += f"{total_requests} requests made to the {page}\n"
+                else:
+                    traffic += f"{total_requests} requests made to the {page} route\n"
+
             traffic += "============================================\n"
             result['message'] = traffic
 
@@ -474,7 +478,7 @@ if __name__ == '__main__':
     udp_thread.start()
 
     # start web app/server
-    app.run(port = 9000, debug = True)
+    app.run(port = 9000, debug = False)
 
     # server with self-signed SSL certificate
     # app.run(ssl_context=('certificates/cert.pem', 'certificates/key.pem'), port=9000, debug=True)
