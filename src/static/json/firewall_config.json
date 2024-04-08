@@ -1,8 +1,8 @@
 {
     "allowed_traffic": [
         {
-        "ports": [9000],
-        "protocols": ["tcp"]
+            "ports": [9000],
+            "protocols": ["tcp"]
         }
     ],
     "denied_headers": [

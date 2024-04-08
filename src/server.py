@@ -1,6 +1,8 @@
 # imports
 import json
+import socket
 import logging
+import threading
 from collections import Counter
 from datetime import datetime, timedelta
 from flask import Flask, request, render_template, jsonify, url_for, redirect
@@ -12,7 +14,7 @@ from flask import Flask, request, render_template, jsonify, url_for, redirect
 '''
 
 # make flask instance
-app = Flask(__name__)  
+app = Flask('Firewall & IDS')  
 
 # {client_address : requests_within_last_minute}
 client_activity = {}
@@ -62,6 +64,35 @@ def log_message(msg):
         f"{msg}"
     )
 
+
+'''
+    =======================================
+            Configure additional ports
+    =======================================
+'''
+
+# Handle UDP connections
+def udp_server():
+    global client_activity
+
+    # setup UDP socket
+    udp_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    udp_socket.bind(('127.0.0.1', 9001))  
+    
+    print("UDP connection: listening on port 9001")
+    
+    # view server's open udp ports: sudo nmap -sU localhost
+    while True:
+        data, client = udp_socket.recvfrom(1024) 
+
+        msg = f"Client: {client}, sent a UDP packet, {data.decode('utf-8')}"
+        log_message(msg)        
+
+        # update clients suspicion type
+        if client not in client_activity or "type" not in client_activity[client]:
+            client_activity[client]["type"] = f"attempted sending a UDP packet: {data}"
+            client_activity[client]["timestamp"] = datetime.now()
+    
 
 '''
     =======================================
@@ -438,10 +469,12 @@ if __name__ == '__main__':
     # setup packet/client logging
     _logger()
 
-    # start web app/server
-    app.run(port= 9000)
+    # udp socket port thread
+    udp_thread = threading.Thread(target=udp_server)
+    udp_thread.start()
 
-'''
-    todo:
-    add udp server?
-'''
+    # start web app/server
+    app.run(port = 9000, debug = True)
+
+    # server with self-signed SSL certificate
+    # app.run(ssl_context=('certificates/cert.pem', 'certificates/key.pem'), port=9000, debug=True)

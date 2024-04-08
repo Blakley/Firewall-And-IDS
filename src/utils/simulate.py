@@ -1,5 +1,6 @@
 # imports
 import time
+import socket
 import random
 import requests
 import threading
@@ -7,7 +8,7 @@ import http.client
 from termcolor import colored
 
 
-class Attack():
+class Simulate():
     def __init__(self):
         self.url = 'http://127.0.0.1:9000'
         self.routes = [
@@ -124,7 +125,27 @@ class Attack():
                 for _ in range(x):
                     self.requester(client, "intensive") 
 
+
+    # send UDP packets
+    def send_udp(self):
+   
+        # send udp packet method 1: echo "Your packet data" | nc -u localhost 9001
+        # send udp packet method 2: 
+        '''
+            with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as s:
+                s.sendto(MESSAGE, (HOST, PORT))
+        '''
+        
+        msg = f'' 
+
+        # send a message to the servers udp port
+        with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as s:
+            s.sendto(msg, ('127.0.0.1', 9001))
+
+
+
 # start
 if __name__ == '__main__':
-    attack = Attack()
-    attack.crawl()
+    s = Simulate()
+    # s.crawl()
+    s.send_udp()
