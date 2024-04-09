@@ -6,15 +6,15 @@ The goal of this project is to demonstrate cybersecurity defenses of enterprise 
 ![Terminal Output](src/static/img/demo.png)
 
 ## Features
-- **Firewall Configuration:** Implement a firewall to control and monitor incoming and outgoing network traffic based on predefined security rules.
+- **Firewall Configuration:** A firewall to control and monitor incoming and outgoing network traffic based on predefined security rules.
 
-- **Intrusion Detection System (IDS):** Deploy an IDS to detect and respond to potential security threats and attacks within the network.
+- **Intrusion Detection System (IDS):** An IDS to detect and respond to potential security threats and attacks within the network.
 
-- **Rate Limiting:** Implement rate limiting to control the number of requests from clients and prevent abuse of server resources.
+- **Rate Limiting:** Rate limiting to control the number of requests from clients and prevent abuse of server resources.
 
-- **Client Tracking:** Track client activity and access patterns to identify suspicious behavior and potential security threats.
+- **Client Tracking:** Tracks client activity and access patterns to identify suspicious behavior and potential security threats.
 
-- **Error Handling:** Redirect clients to error pages or return appropriate status codes to handle blocked access or detected security threats.
+- **Error Handling:** Redirects clients to error pages or return appropriate status codes to handle blocked access or detected security threats.
 
 ## Usage
 Clone the repository:
