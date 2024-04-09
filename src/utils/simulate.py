@@ -2,7 +2,6 @@
 import time
 import socket
 import random
-import requests
 import threading
 import http.client
 from termcolor import colored
@@ -37,13 +36,12 @@ class Simulate():
 
 
     # sends a UDP packet
-    def send_udp(self):   
+    def send_udp(self, client):   
         # send udp packet method 1: echo "some random packet" | nc -u localhost 9001
-        
-        # send a message to the servers udp port
-        msg = f'some random packet' 
+        msg = b'some random packet' 
 
         with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as s:
+            s.bind((client, 0))  # Bind to the client's address
             s.sendto(msg, ('127.0.0.1', 9001))
 
 
@@ -98,15 +96,15 @@ class Simulate():
     # website crawl handler
     def crawl(self):
         # setup threads for crawl_basic and crawl_intensive
-        thread_basic = threading.Thread(target=self.crawl_basic)
+        # thread_basic = threading.Thread(target=self.crawl_basic)
         thread_intensive = threading.Thread(target=self.crawl_intensive)
 
         # start the threads
-        thread_basic.start()
+        # thread_basic.start()
         thread_intensive.start()
 
         # wait for threads to complete
-        thread_basic.join()
+        # thread_basic.join()
         thread_intensive.join()
 
 
@@ -131,16 +129,21 @@ class Simulate():
     def crawl_intensive(self):
         while True:
             for client in self.clients_b:
-                # send x amount of requests from the client
-                x = random.randint(300, 1000)
-                for _ in range(x):
-                    self.requester(client, "intensive") 
+                
+                # send a udp or tcp packet:
+                p = random.randint(1, 100)
+                if p >= 15:
+                    # send normal request
+                    # send x amount of requests from the client
+                    x = random.randint(300, 1000)
+                    for _ in range(x):
+                        self.requester(client, "intensive") 
+                else:
+                    # send UDP packets
+                    i = random.randint(1, 5)
+                    for _ in range(i):                        
+                        self.send_udp(client)
 
-                # send UDP packets
-                # if x >= 500:
-                #     i = random.randint(1, 10)
-                #     for _ in range(i):
-                #         self.send_udp()
 
 # start
 if __name__ == '__main__':
